@@ -1,21 +1,13 @@
 export class WebRTCClass {
   peerConnection?: RTCPeerConnection;
-  videoEl?: HTMLVideoElement;
 
-  constructor({ videoEl }: { videoEl: HTMLVideoElement }) {
-    this.videoEl = videoEl;
+  constructor() {
     if (!window.RTCPeerConnection) {
       console.error('当前环境不支持RTCPeerConnection！');
       alert('当前环境不支持RTCPeerConnection！');
       return;
     }
     this.peerConnection = new RTCPeerConnection();
-    this.peerConnection?.addEventListener('addstream', (event: any) => {
-      console.warn(`pc收到addstream事件`, event, event.stream);
-    });
-    this.peerConnection?.addEventListener('addtrack', (event: any) => {
-      console.warn(`pc收到addtrack事件`, event, event.stream);
-    });
   }
 
   createOffer = async () => {
@@ -25,6 +17,17 @@ export class WebRTCClass {
       return offer;
     } catch (error) {
       console.error('createOffer错误');
+      console.log(error);
+    }
+  };
+
+  createAnswer = async () => {
+    try {
+      const offer = await this.peerConnection?.createAnswer();
+      console.log('createAnswer成功');
+      return offer;
+    } catch (error) {
+      console.error('createAnswer错误');
       console.log(error);
     }
   };
