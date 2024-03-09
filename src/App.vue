@@ -1,6 +1,6 @@
 <template>
   <video
-    ref="localVideo"
+    ref="videoRef"
     autoplay
     controls
     style="height: 400px; width: 400px"
@@ -9,71 +9,88 @@
   <br />
   <br />
   <video
-    ref="remoteVideo"
+    ref="pullVideoRef"
     autoplay
     controls
     style="height: 400px; width: 400px"
   ></video>
-  <button @click="getStream">获取stream流</button>
+  <button @click="startRTC">webrtcClass</button>
   <button @click="playFlv">playFlv</button>
 </template>
 
 <script setup lang="ts">
-import axios from 'axios';
 import FlvJs from 'flv.js';
 import { ref } from 'vue';
 
+import { fetchRtcV1Publish } from './api/srs';
 import { WebRTCClass } from './network/webrtc';
 
-const localStream = ref<MediaStream>();
-const localVideo = ref<HTMLVideoElement>();
-const remoteVideo = ref<HTMLVideoElement>();
+const videoRef = ref<HTMLVideoElement>();
+const pullVideoRef = ref<HTMLVideoElement>();
+const liveStreamName = ref('sparklive/test');
+const rtc = ref<WebRTCClass>();
 
 // 'http://localhost:5001/sparklive/test'
 
+// flv拉流
 function playFlv() {
   const flvPlayer = FlvJs.createPlayer({
     type: 'flv',
-    url: 'http://localhost:5001/sparklive/test.flv',
+    url: `http://localhost:5001/${liveStreamName.value}.flv`,
   });
   console.log('flv拉流');
-  flvPlayer.attachMediaElement(remoteVideo.value!);
+  flvPlayer.attachMediaElement(pullVideoRef.value!);
   flvPlayer.load();
 }
 
-async function getStream() {
+async function getScreen() {
+  // 获取视频
   const stream = await navigator.mediaDevices.getDisplayMedia({
     video: true,
     audio: true,
   });
-  localStream.value = stream;
-  localVideo.value!.srcObject = stream;
-  const rtc = new WebRTCClass();
-  stream.getTracks().forEach((track) => {
-    rtc.peerConnection?.addTrack(track, stream);
-  });
-  const sdp = await rtc.createOffer();
-  if (!sdp) {
-    console.error('createOffer没有sdp');
-    return;
-  }
-  await rtc.setLocalDescription(sdp);
 
-  const publishRes = await axios.post('http://localhost:1985/rtc/v1/publish/', {
-    api: '/rtc/v1/publish/',
-    streamurl: 'webrtc://localhost:5001/sparklive/test',
-    sdp: sdp.sdp,
+  videoRef.value?.addEventListener('loadstart', () => {
+    console.warn('视频流-loadstart');
   });
 
-  console.log(publishRes.data);
+  videoRef.value?.addEventListener('loadedmetadata', async () => {
+    console.warn('视频流-loadedmetadata');
 
-  if (publishRes.data.code != 0) {
-    console.error('没拿到answer');
-    return;
-  }
+    stream.getTracks().forEach((track) => {
+      rtc.value?.peerConnection?.addTrack(track, stream);
+    });
+    const offer = await rtc.value?.createOffer();
+    if (!offer) {
+      console.error('createOffer失败');
+      return;
+    }
+    await rtc.value?.setLocalDescription(offer);
 
-  await rtc.setRemoteDescription(publishRes.data.sdp);
-  console.log('okkk');
+    const res = await fetchRtcV1Publish({
+      sdp: offer.sdp!,
+      liveStreamName: liveStreamName.value,
+    });
+    console.log('fetchRtcV1Publish', res.data);
+    if (res.data.code !== 200) {
+      console.error('接口返回错误');
+      return;
+    }
+    if (res.data.data.code !== 0) {
+      console.error('srs没有返回spd');
+      return;
+    }
+    await rtc.value?.setRemoteDescription(res.data.data.sdp);
+  });
+
+  videoRef.value!.srcObject = stream;
+}
+
+function startRTC() {
+  const webrtc = new WebRTCClass({ videoEl: videoRef.value! });
+  console.log(webrtc, 'new webrtc成功');
+  rtc.value = webrtc;
+  getScreen();
 }
 </script>
 

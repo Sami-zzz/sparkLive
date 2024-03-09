@@ -1,6 +1,5 @@
 import axios from 'axios';
 
-// http://localhost:1985/
 export const fetchRtcV1Publish = ({
   sdp,
   liveStreamName,

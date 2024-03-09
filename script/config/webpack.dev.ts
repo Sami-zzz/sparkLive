@@ -72,7 +72,6 @@ export default new Promise((resolve) => {
           },
           proxy: {
             '/api': {
-              // target: 'http://localhost:4200',
               target: 'http://localhost:4300',
               // target: 'https://live.hsslive.cn/aliyun-hk/',
               secure: false, // 默认情况下（secure: true），不接受在HTTPS上运行的带有无效证书的后端服务器。设置secure: false后，后端服务器的HTTPS有无效证书也可运行
