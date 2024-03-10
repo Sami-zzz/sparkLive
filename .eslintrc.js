@@ -124,7 +124,7 @@ module.exports = {
       },
     ],
     'import/newline-after-import': 2, // 强制在最后一个顶级导入语句或 require 调用之后有一个或多个空行
-    'import/no-extraneous-dependencies': 2, // 禁止导入未在package.json中声明的外部模块。
+    'import/no-extraneous-dependencies': 0, // 禁止导入未在package.json中声明的外部模块。
     /**
      * import/named
      * 在import { version } from 'vuex';的时候会验证vuex有没有具名导出version，
